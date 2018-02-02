@@ -1,0 +1,30 @@
+---
+title: "COMPSCIX 415.2 Homework 1"
+author: "Sharmistha Maitra"
+date: "2/1/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+My Github repository for my assignments can be found at this URL: [https://github.com/sharmisthamaitra/compscix-415-2-assignments](your URL)
+
+library(mdsr)
+library(tidyverse)
+'''{r load_packages, warning=FALSE, message=FALSE}
+
+data("WorldCities")
+
+glimpse(WorldCities)
+
+WorldCities <- head(WorldCities, 200) # 200 rows
+
+country_col <- WorldCities$country
+
+unique(country_col)
+
+region_col <- WorldCities$region
+
+unique(region_col)
