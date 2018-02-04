@@ -28,3 +28,25 @@ unique(country_col)
 region_col <- WorldCities$region
 
 unique(region_col)
+
+WorldCities %>% select(region) %>% head(5)
+
+WorldCities %>% select(country) %>% unique
+
+WorldCities %>% ggplot(aes(x = population)) +
+geom_histogram()
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+WorldCities %>% ggplot(aes(x = population)) +
+geom_histogram() +
+xlab('City Population')
+
+
+WorldCities %>% ggplot(aes(x = population)) +
+geom_histogram() +
+xlab('City Population') +
+ylab('Population Count') +
+ggtitle('World Cities Population Chart', subtitle = NULL) +
+theme_bw()
+
+

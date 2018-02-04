@@ -134,6 +134,11 @@ $(document).ready(function () {
 <p>unique(country_col)</p>
 <p>region_col &lt;- WorldCities$region</p>
 <p>unique(region_col)</p>
+<p>WorldCities %&gt;% select(region) %&gt;% head(5)</p>
+<p>WorldCities %&gt;% select(country) %&gt;% unique</p>
+<p>WorldCities %&gt;% ggplot(aes(x = population)) + geom_histogram() ## <code>stat_bin()</code> using <code>bins = 30</code>. Pick better value with <code>binwidth</code>.</p>
+<p>WorldCities %&gt;% ggplot(aes(x = population)) + geom_histogram() + xlab(‘City Population’)</p>
+<p>WorldCities %&gt;% ggplot(aes(x = population)) + geom_histogram() + xlab(‘City Population’) + ylab(‘Population Count’) + ggtitle(‘World Cities Population Chart’, subtitle = NULL) + theme_bw()</p>
 
 
 
