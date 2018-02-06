@@ -130,15 +130,22 @@ $(document).ready(function () {
 <p>data(“WorldCities”)</p>
 <p>glimpse(WorldCities)</p>
 <p>WorldCities &lt;- head(WorldCities, 200) # 200 rows</p>
-<p>country_col &lt;- WorldCities$country</p>
-<p>unique(country_col)</p>
-<p>region_col &lt;- WorldCities$region</p>
-<p>unique(region_col)</p>
+<p>country_col &lt;- WorldCities$country unique(country_col)</p>
+<div id="question-2-there-is-a-column-called-region-in-the-data-set.-can-you-extract-this-and-show-only-the-unique-values" class="section level2">
+<h2>QUESTION 2: There is a column called region in the data set. Can you extract this and show only the unique values?</h2>
+<p>region_col &lt;- WorldCities$region unique(region_col)</p>
 <p>WorldCities %&gt;% select(region) %&gt;% head(5)</p>
+</div>
+<div id="question-3-can-you-extract-and-show-the-unique-entries-from-the-country-column-in-worldcities-using-one-line-of-code-and-two-operators" class="section level2">
+<h2>QUESTION 3: Can you extract and show the unique entries from the country column in WorldCities using one line of code and two %&gt;% operators?</h2>
 <p>WorldCities %&gt;% select(country) %&gt;% unique</p>
 <p>WorldCities %&gt;% ggplot(aes(x = population)) + geom_histogram() ## <code>stat_bin()</code> using <code>bins = 30</code>. Pick better value with <code>binwidth</code>.</p>
 <p>WorldCities %&gt;% ggplot(aes(x = population)) + geom_histogram() + xlab(‘City Population’)</p>
+</div>
+<div id="question-4-make-one-more-histogram-of-the-population-and-add-a-new-x-label-a-new-ylabel-a-new-title-use-ggtitlemy-title-and-change-the-theme-of-the-plot-using-theme_bw." class="section level2">
+<h2>QUESTION 4: Make one more histogram of the population and add a new x-label, a new ylabel, a new title (use ggtitle(‘my title’)), and change the theme of the plot using theme_bw().</h2>
 <p>WorldCities %&gt;% ggplot(aes(x = population)) + geom_histogram() + xlab(‘City Population’) + ylab(‘Population Count’) + ggtitle(‘World Cities Population Chart’, subtitle = NULL) + theme_bw()</p>
+</div>
 
 
 
