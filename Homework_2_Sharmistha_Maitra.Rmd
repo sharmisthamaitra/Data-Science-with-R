@@ -260,3 +260,17 @@ ggplot(data = diamonds) +
 ```
 
 
+Sharmistha Maitra.
+Assignment 2.
+
+What is a Data Scientist. Please briefly critique the
+designer’s choices. What works? What doesn’t work? What would you have done differently?
+
+Answer: I do agree with the suggestion in the article that over the next five years the demand for data scientists will outpace the supply of data scientists. This is because more and more organizations are now resorting to analyzing their data and taking new course of action or planning to execute new projects that can improve their business after looking at the data. And this trend of applying more data science for the improvement of the business of the organizations will increase many fold over time.
+
+I think the best source of new data science talents would come from various fields: present day BIs, Computer science students, Students studying in non computer science fields, professionals working in non computer science field, professionals in computer science field.
+
+But I think, there is a chance that much of the present day data science work will be automated as new tools and strategies are developed. So there will be a balancing between number of data scientists required and the number of new opportunities after the initial excitement passes off.
+
+I do agree that a  Data scientist should be ready to work with three different scenarios. 1) Working with clean and organized data - 25% of time, 2) Working with very large datasets and unclean data that falls under big data category - 10% of time 3) Working in the middle ground of 1 and 2 - 60% of time.
+
