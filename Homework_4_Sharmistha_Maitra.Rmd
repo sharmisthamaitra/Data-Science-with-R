@@ -1,0 +1,360 @@
+---
+title: "COMPSCIX 415.2 Homework 4"
+author: "Sharmistha Maitra"
+date: "2/20/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+#Section 5.6.7: #2, #4, #5 and #6 only
+#Section 10.5: #1, #2, #3 and #6 only
+#Section 12.3.3: #2, #3 and #4 only
+#Section 12.4.3: #1 and #2 only
+
+
+```{r load_packages, warning=FALSE, message=FALSE}
+library(nycflights13)
+library(tidyverse)
+```
+
+#Section 5.6.7: #2
+#Come up with another approach that will give you the same output as not_cancelled %>% count(dest) and not_cancelled %>% count(tailnum, wt = distance) (without using count()).
+
+```{r}
+not_cancelled <- flights %>%
+                filter(!is.na(dep_delay))
+                  
+not_cancelled
+
+#dest_using_count <- not_cancelled %>% count(dest)
+#dest_using_count
+
+#tailnum_dist_using_count <- not_cancelled %>% count(tailnum, wt = distance)
+#tailnum_dist_using_count
+
+
+flight_by_dest <- not_cancelled %>%
+                  group_by(dest) %>%
+                  summarise(count_by_dest = n())
+flight_by_dest
+
+
+flight_by_tailnum_dist <- not_cancelled %>%
+                          group_by(tailnum) %>%
+                          summarise(count_by_tailnum = n(), wt = sum(distance))
+
+flight_by_tailnum_dist
+```
+
+
+#4.Look at the number of cancelled flights per day. Is there a pattern? Is the proportion of cancelled flights related to the average delay?
+
+```{r}
+cancelled_flights_per_day <- flights %>%
+                            group_by(year, month, day) %>%
+                            summarize(
+                            count_flights = n(), 
+                            count_cancelled_flights = sum(is.na(dep_delay)),
+                            average_delay = mean(dep_delay,na.rm = TRUE),
+                            prop_cancelled_flights = count_cancelled_flights/count_flights 
+                   )
+cancelled_flights_per_day
+
+ggplot(data = cancelled_flights_per_day, mapping = aes(x = average_delay, y = prop_cancelled_flights)) +
+  geom_point() +
+  geom_smooth()
+```
+
+
+#5.Which carrier has the worst delays? Challenge: can you disentangle the effects of bad airports vs. bad carriers? Why/why not? (Hint: think about flights %>% group_by(carrier, dest) %>% summarise(n()))
+
+
+#carriers with worst delays
+```{r}
+carriers_worst_delay_carrier <- flights %>%
+                              group_by(carrier) %>%
+                              summarize(count = n(), 
+                                  delay = mean(arr_delay, na.rm = TRUE),
+                                  proportion_delay = delay/count
+                                  ) %>%
+                              arrange(desc(proportion_delay))
+                                 
+                        
+carriers_worst_delay_carrier
+
+ ggplot(data = carriers_worst_delay_carrier, mapping = aes(x = carrier, y = proportion_delay)) +
+  geom_col() 
+```
+
+#destinations with worst delay
+```{r}
+carriers_worst_delay_dest <- flights %>%
+                              group_by(dest) %>%
+                              summarize(count = n(), 
+                                  delay = mean(arr_delay, na.rm = TRUE),
+                                  proportion_delay = delay/count
+                                  ) %>%
+                              arrange(desc(proportion_delay))
+                                 
+                        
+carriers_worst_delay_dest
+
+ ggplot(data = carriers_worst_delay_dest, mapping = aes(x = dest, y = proportion_delay)) +
+  geom_col() 
+```
+
+#delays arranged by carrier and destination
+```{r}
+carriers_worst_delay_carrierdest <- flights %>%
+                          
+                        group_by(carrier,dest) %>%
+                        summarize(count = n(),
+                                delay = mean(arr_delay, na.rm = TRUE),
+                                proportion_delay = delay/count 
+                        ) %>%
+                      
+                       arrange(desc(proportion_delay))
+                                 
+                        
+ carriers_worst_delay_carrierdest
+ 
+  ggplot(data = carriers_worst_delay_carrierdest, mapping = aes(x = carrier, y = delay)) +
+  geom_col() 
+ 
+ 
+```
+
+#6.What does the sort argument to count() do. When might you use it?
+#sort argument on count() sorts the results of the count() in descending order.  
+```{r}
+carriers <- flights %>%
+            group_by(carrier) %>%
+            count(carrier, sort = TRUE)
+carriers
+```
+
+
+#Section 10.5: #1, #2, #3 and #6 only
+
+#10.5 Exercises
+
+#1.How can you tell if an object is a tibble? (Hint: try printing mtcars, which is a regular data frame).
+#mtcars is a dataframe. It can be converted to a tibble using as_tibble(mtcars).
+#print(mtcars) prints the dataframe. print(as_tibble(mtcars)) prints it in the form of a tibble.
+```{r}
+print(mtcars)
+
+print(as_tibble(mtcars))
+
+```
+
+
+#2.Compare and contrast the following operations on a data.frame and equivalent tibble. What is different? Why might the default data frame behaviours cause you frustration?
+
+#df <- data.frame(abc = 1, xyz = "a")
+#df$x
+#df[, "xyz"]
+#df[, c("abc", "xyz")]
+
+
+#on a dataframe
+```{r}
+df <- data.frame(abc = 1, xyz = "a")
+df
+```
+
+```{r}
+df$x
+
+```
+
+```{r}
+df[, "xyz"]
+```
+
+```{r}
+df[, c("abc", "xyz")]
+```
+
+#on a tibble.
+#tibble cannot do partial matching, so df_tibble$x returns an error saying it cannot find column w name 'x'. Unknown or uninitialised column: 'x'.NULL
+#
+```{r}
+df <- data.frame(abc = 1, xyz = "a")
+df_tibble <- as_tibble(df)
+```
+
+```{r}
+df_tibble$x
+```
+```{r}
+df_tibble[, "xyz"]
+```
+
+```{r}
+df_tibble[, c("abc", "xyz")]
+```
+
+#3.If you have the name of a variable stored in an object, e.g. var <- "mpg", how can you extract the reference variable from a tibble?
+
+```{r}
+tibble_mtcars <- as_tibble(mtcars)
+var <- "mpg"
+tibble_mtcars[var]
+
+```
+
+#6.What option controls how many additional column names are printed at the footer of a tibble?
+#The folowing code can be used to print extra columns.
+#print(x, ..., n = NULL, width = NULL, n_extra = NULL)
+
+#x: Object to show.
+#n: Number of rows to show. If NULL, the default, will print all rows.
+#width: This defaults to NULL, which means only the columns that fit on screen will show
+#n_extra: Number of extra columns to print .
+
+
+##Section 12.3.3: #2, #3 and #4 only
+
+#2.Why does this code fail?
+#it fails because 1999 and 2000 have not been referenced correctly, back ticks missing.
+
+#table4a %>% 
+ # gather(1999, 2000, key = "year", value = "cases")
+  
+
+```{r}
+table4a <- tibble(
+            country = c("Afghanistan", "Brazil", "China"),
+            `1999` = c(745, 37737, 212258),
+            `2000` = c(2666, 80488, 213766)
+            )
+table4a
+
+#table4a %>% 
+ #gather(1999, 2000, key = "year", value = "cases")
+
+table4a %>% 
+ gather(`1999`, `2000`, key = "year", value = "cases")
+```
+
+#3.Why does spreading this tibble fail? How could you add a new column to fix the problem?
+#The tibble has two entries for Phillip Woods and Age. A new column can be added to specify the observation, so that [Philip Woods, age 45 is observation 1 ] and [Philip Woods, age 45 is observation 2 ]
+
+```{r}
+people <- tribble(
+  ~name,             ~key,    ~value,  ~observation,
+  #-----------------|--------|-------|------------
+  "Phillip Woods",   "age",       45,    1,
+  "Phillip Woods",   "height",   186,    1, 
+  "Phillip Woods",   "age",       50,    2,   
+  "Jessica Cordero", "age",       37,    1,
+  "Jessica Cordero", "height",   156,    1
+)
+
+people
+
+people_spread <- people %>%
+                  spread(key, value)
+people_spread
+```
+
+
+#4.Tidy the simple tibble below. Do you need to spread or gather it? What are the variables?
+#Gather is needed. The variables are pregnant(Y,N), sex(male or female), months_pregnancy
+
+```{r}
+preg <- tribble(
+  ~pregnant, ~male, ~female,
+  "yes",     NA,    10,
+  "no",      20,    12
+)
+preg
+
+preg_gathered <- preg %>%
+                gather(male, female, key = "sex", value = "months_pregnancy")
+
+preg_gathered
+```
+
+#Section 12.4.3: #1 and #2 only
+
+#1.What do the extra and fill arguments do in separate()? Experiment with the various options for the following two toy datasets.
+
+#extra =>	If sep is a character vector, this controls what happens when there are too many pieces. There are three valid options:
+#"warn" (the default): emit a warning and drop extra values.
+#"drop": drop any extra values without a warning.
+#"merge": only splits at most length(into) times
+
+#fill	=> If sep is a character vector, this controls what happens when there are not enough pieces. There are three valid options:
+#"warn" (the default): emit a warning and fill from the right
+#"right": fill with missing values on the right
+#"left": fill with missing values on the left
+
+```{r}
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>% 
+  separate(x, c("one", "two", "three"))
+```
+
+```{r}
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>% 
+  separate(x, c("one", "two", "three", extra = "drop"))
+```
+
+```{r}
+tibble(x = c("a,b,c", "d,e", "f,g,i")) %>% 
+  separate(x, c("one", "two", "three", fill = "right"))
+```
+
+#2.Both unite() and separate() have a remove argument. What does it do? Why would you set it to FALSE?
+#remove in unite() and separate() means if 'remove = TRUE, remove input columns from output data frame'.
+#THEDEFAULT VALUE IS remove = TRUE where input columns are separated from the output result.
+#if remove = false IS SPECIFIED, the input columns are included in the output result
+```{r}
+tibble(x = c("a,b,c", "d,e", "f,g,i")) %>% 
+  separate(x, c("one", "two", "three", remove = TRUE)) %>%
+unite(new, one, two, three, sep = "", remove = TRUE)
+```
+
+```{r}
+tibble(x = c("a,b,c", "d,e", "f,g,i")) %>% 
+  separate(x, c("one", "two", "three", remove = FALSE)) %>%
+unite(new, one, two, three, sep = "", remove = FALSE)
+```
+
+
+#Follow these steps:
+#- Download the baby_names.txt file from Canvas which is in the Homework 4 assignment section.
+#- Load this file into R correctly and take a glimpse of the output.
+#- Export this file as an rds file and call it ‘baby_names.rds’.
+#- Reload the baby_names.rds file and take another glimpse.
+#- Show all of your code and the output. There should be two data import lines of code, one data export
+#line of code, and two glimpses of the data.
+
+```{r}
+
+babynames_file_path <- "/Users/sharmisthamaitra/compscix-415-2-assignments/baby_names.txt"
+baby_data <- read.table(babynames_file_path, 
+               header = TRUE,
+               sep="|" 
+               )
+glimpse(baby_data)
+
+saveRDS(baby_data, "/Users/sharmisthamaitra/compscix-415-2-assignments/baby_names.rds")
+```
+
+```{r}
+babynames_file_path_rds <- "/Users/sharmisthamaitra/compscix-415-2-assignments/baby_names.rds"
+
+baby_data_rds <- readRDS(babynames_file_path_rds)
+glimpse(baby_data_rds)
+```
