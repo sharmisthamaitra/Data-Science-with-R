@@ -1,0 +1,362 @@
+---
+title: "MidtermCOMPSCIX 415.2 Homework 5/Midterm"
+author: "Sharmistha Maitra"
+date: "3/1/2018"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+
+```{r load_packages, warning=FALSE, message=FALSE}
+library(nycflights13)
+library(tidyverse)
+library(dplyr)
+```
+
+#RStudio and R Markdown (3 points)
+
+```{r}
+##1.Use markdown headers in your document to clearly separate each midterm question and add a table of contents to your document.
+
+```
+
+#__The tidyverse packages (3 points)__
+##1.Can you name which package is associated with each task below?
+
+```{r}
+
+#Plotting - package tidyverse, Core member 1) ggplot2 needed. 
+
+
+#Data munging/wrangling - package tidyverse, Core members 1) tidyr 2) Tibble 3) dlpyr needed. 
+
+
+#Reshaping (speading and gathering) - package tidyverse, Core members 1) tidyr needed.
+
+
+#Importing/exporting data - package tidyverse, Core members 1) readr needed.
+```
+
+
+##2.Now can you name two functions that you’ve used from each package that you listed above for these tasks?
+```{r}
+#Plotting - ggplot(), geom_point() for ggplot2 package.
+
+#Data munging/wrangling -tibble(),filter(), arrange(), select(), summarise() 
+
+#Reshaping data - gather(), spread() for tidyr package
+
+#Importing/exporting data  - read_csv, read_tsv, write_csv, readRDS, saveRDS for readr package
+
+```
+
+
+#__R Basics (1.5 points)__
+##1. Fix this code with the fewest number of changes possible so it works:
+```{r}
+
+#My_data.name___is.too00ooLong! <- c( 1 , 2   , 3 )
+
+My_data.name___is.too00ooLong <- c( 1 , 2   , 3 )
+My_data.name___is.too00ooLong
+```
+
+
+##2.Fix this code so it works:
+```{r}
+
+#my_string <- C('has', 'an', 'error', 'in', 'it)
+
+my_string <- c('has', 'an', 'error', 'in', 'it')
+my_string
+```
+
+
+##3.Look at the code below and comment on what happened to the values in the vector.
+```{r}
+
+#The integer values 1 and 2 got converted into character vectors
+
+my_vector <- c(1, 2, '3', '4', 5)
+my_vector
+
+
+
+```
+
+
+#__Data import/export (3 points)__
+
+##1.Download the rail_trail.txt file from Canvas (in the Midterm Exam section here) and successfully import it into R. Prove that it was imported successfully by including your import code and taking a glimpse of the result.
+```{r}
+
+railtrail_file_path <- "/Users/sharmisthamaitra/compscix-415-2-assignments/rail_trail.txt"
+rail_data <- read.table(railtrail_file_path, 
+               header = TRUE,
+               sep="|" 
+               )
+glimpse(rail_data)
+```
+
+
+##2.Export the file into an R-specific format and name it “rail_trail.rds”. Make sure you define the path correctly so that you know where it gets saved. Then reload the file. Include your export and import code and take another glimpse.
+```{r}
+saveRDS(rail_data, "/Users/sharmisthamaitra/compscix-415-2-assignments/rail_trail.rds")
+
+
+railtrail_file_path_rds <- "/Users/sharmisthamaitra/compscix-415-2-assignments/rail_trail.rds"
+
+rail_data_rds <- readRDS(railtrail_file_path_rds)
+glimpse(rail_data_rds)
+```
+
+
+#__Visualization (6 points).__ 
+##1.Critique this graphic: give only three examples of what is wrong with this graphic. Be concise.
+
+```{r}
+#The size of the circles is not proportional to the percentages they represent. For example 79 is a huge circle while 16 is very tiny.
+
+#Dont know what the black circles represent, if they are percentages of women or men 
+
+#For graphs showing percentage comparisons, I would expect YES and NO  percentages to add up to 100, but that is not happening anywhere in this graph.
+
+```
+
+
+##2.Reproduce this graphic using the diamonds data set.
+```{r}
+ggplot(data = diamonds, mapping = aes(x = cut, y = carat, fill = color) )+
+geom_boxplot(position = "identity") +
+labs(x = "CUT OF DIAMOND", y = "CARAT OF DIAMOND") +
+coord_flip()
+```
+
+
+##3.The previous graphic is not very useful. We can make it much more useful by changing one thing about it. Make the change and plot it again.
+```{r}
+#The previous graphic is not very helpful because within each boxplot(drawn for each cut) it stacks boxplots for each color making the graphic difficult to understand. So I changed to 'position = "dodge" inside geom_boxplot() , the resultant graphic has a separate box plot for each color diamond, for each cut. 
+
+ggplot(data = diamonds, mapping = aes(x = cut, y = carat, fill = color)) +
+ geom_boxplot(position = "dodge") +
+labs(x = "CUT OF DIAMOND", y = "CARAT OF DIAMOND") +
+  coord_flip()
+```
+
+
+
+
+
+#__Data munging and wrangling (6 points)__
+##1.Is this data “tidy”? If yes, leave it alone and go to the next problem. If no, make it tidy. Note: this data set is called table2 and is available in the tidyverse package. It should be ready for you to use after you’ve loaded the tidyverse package.
+
+```{r}
+
+#This data is not tidy because 
+#There are 3 rules which make a dataset tidy:
+#Each variable must have its own column.
+#Each observation must have its own row.
+#Each value must have its own cell.
+#Here we see  two different variables "cases" and "population" have been listed under one column 'type', the variables need to be spread out into two separate columns with the spread() function.
+
+
+#tibble_table2 <- as_tibble(table2)
+#tibble_table2
+
+spread(table2, key = type, value = count)
+
+```
+
+
+##2.Create a new column in the diamonds data set called price_per_carat that shows the price of each diamond per carat (hint: divide). Only show me the code, not the output.
+```{r}
+mutate(diamonds, price_per_carat = price/carat)
+```
+
+
+##3.For each cut of diamond in the diamonds data set, how many diamonds, and what proportion, have a price > 10000 and a carat < 1.5? There are several ways to get to an answer, but your solution must use the data wrangling verbs from the tidyverse in order to get credit.
+###Do the results make sense? Why?
+###Do we need to be wary of any of these numbers? Why?
+```{r}
+#From the result table below, there are more diamonds with price>10000 and carat <1.5 for the Ideal cut. The general trend of is as the cut of the diamonds improves from fair to ideal, there are more diamonds that fall in the above range. 
+
+
+diamonds_per_cut <- diamonds %>%
+                      group_by(cut) %>%
+                      arrange(cut) %>%
+                      summarize(
+                        diamonds = sum(n())
+                        )
+#diamonds_per_cut
+
+
+
+selected_diamonds_per_cut <- diamonds %>%
+                            filter(price > 10000, carat < 1.5 ) %>%
+                            group_by(cut) %>%
+                            arrange(cut) %>%
+                           summarize(
+                                 selected_diamonds = sum(n())
+                             )
+#selected_diamonds_per_cut
+
+
+#Now joining the two diamonds tables above, key is 'cut' of diamonds.
+#x %>% 
+#  inner_join(y, by = "key")
+diamonds_table_join <- diamonds_per_cut %>%
+                       inner_join(selected_diamonds_per_cut, by = "cut") 
+#diamonds_table_join
+
+
+
+proportion_diamonds_pricegt10000_carat_lt1.5 <- diamonds_table_join %>%
+                                                group_by(cut) %>%
+                                               summarise(
+                                                        diamonds,
+                                                        selected_diamonds,
+                                                        proportion = selected_diamonds/diamonds
+                                                )
+proportion_diamonds_pricegt10000_carat_lt1.5
+```
+
+
+
+
+#__EDA (6 points) for txhousing dataset__
+
+##1.During what time period is this data from?
+```{r}
+#The time frame for txhousing dataframe is from year January 2000 to July 2015, with data present for all consecutive months in between.
+
+glimpse(txhousing)
+
+tx_housing_tibble <- as_tibble(txhousing)
+tx_housing_tibble
+
+
+time_frame_txhousing <- txhousing %>% select(year, month) %>% arrange() %>% unique()
+
+time_frame_txhousing
+
+```
+
+##2.How many cities are represented?
+```{r}
+#46 cities are represented. The list of cities shown in the output below.
+
+cities <- txhousing %>% select(city) %>% unique() 
+cities 
+
+count_cities <- cities %>% count()
+count_cities
+```
+
+##3.Which city, month and year had the highest number of sales?
+```{r}
+#City of Houston , in month of July in year	2015 had the highest sale of 8945 properties.
+txhousing_sales_desc <- txhousing %>%
+                           arrange(desc(sales)) 
+txhousing_sales_desc
+
+City_with_highest_sale <- txhousing_sales_desc %>%
+                          head(1) %>%
+                          transmute(city, month, year, sales)
+        
+City_with_highest_sale
+```
+
+##4.What kind of relationship do you think exists between the number of listings and the number of sales? Check your assumption and show your work.
+```{r}
+#The number of sales is directly related to the number of listings. An increase in the number of listings means increase in the number of sales. Below plot of sales vs listings illustrate that.
+
+txhousing_listings_ascending <- txhousing %>%
+                                arrange(listings)
+txhousing_listings_ascending
+
+ggplot(data = txhousing_listings_ascending, mapping = aes(x = listings, y = sales)) +
+geom_point() +
+geom_smooth()
+```
+
+##5.What proportion of sales is missing for each city?
+```{r}
+
+#filter_missing_sales <- txhousing %>%
+#                      group_by(city) %>%
+#                        filter(is.na(sales))
+#filter_missing_sales
+
+
+txhousing_with_missingsale_info <- txhousing %>%
+                                   mutate(missing_sale = is.na(sales)) %>%
+                                  group_by(city) %>%
+                                  summarise(
+                                          count_sales = sum(sales, na.rm = TRUE),
+                                          count_missing_sales = sum(missing_sale),
+                                          prop_missing_sales = mean(missing_sale, na.rm = TRUE)
+                                          )
+txhousing_with_missingsale_info
+
+ggplot(data = txhousing_with_missingsale_info, mapping = aes(x = city, y = prop_missing_sales)) +
+  geom_col() +
+  coord_flip()
+  
+```
+
+
+
+##6.Looking at only the cities and months with greater than 500 sales:
+###Are the distributions of the median sales price (column name median), when grouped by city, different? The same? Show your work.
+```{r}
+#The distribution of the median sales price is different for every city as shown in facet_wrap graph below. However there is a basic trend in the median sales price for almost all cities; the median sales price has climbed up from year 2015 through 2015.
+
+
+sales_gt500_cities <- txhousing %>%
+                      filter(sales > 500) %>%
+                      group_by(city) %>%
+                      arrange(city)
+sales_gt500_cities
+
+ggplot(data = sales_gt500_cities) +
+  geom_point(mapping = aes(x = year, y = median)) +
+  facet_wrap(~city)
+
+#ggplot(data = sales_gt500_cities, mapping = aes(x = year, y = median)) +
+# geom_bar(stat = 'identity') +
+#  facet_wrap(~city)
+
+
+```
+
+###Any cities that stand out that you’d want to investigate further?                          
+```{r}
+
+#1. City of corpus christi stands out. Not much datapoints available for its graph, which means its number of home sales was much les compared to other cities. Median home price trend for Corpus Christi cannot be fugured out from this chart. It might be worthwhile to separate redraw the graph for corpus christi with all sales included. 
+
+#2. City of El Paso stands out, its median sales price over the years seemed to grow during the initial years then flatten out gradually. It needs to be investigated further.
+```
+
+###Why might we want to filter out all cities and months with sales less than 500?
+```{r}
+
+#With all sales included in the graph, the graph would become too much cluttered with data points. Filtering out all cities and month with sales less than 500, helps us better understand the trend of the median sale price for each city. 
+
+```
+
+
+
+
+
+
+
