@@ -1,0 +1,194 @@
+---
+title: "COMPSCIX 415.2 Homework 7"
+author: "Sharmistha Maitra"
+date: "3/13/2018"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r load_packages, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(broom)
+```
+
+#__Exercise 1__
+#Load the train.csv dataset into R. How many observations and columns are there?
+```{r}
+#There are 1461 observations and 81 columns in train dataset. 
+
+train_file_path <- "/Users/sharmisthamaitra/compscix-415-2-assignments/train.csv"
+train_data <- read.table(train_file_path, 
+              header = TRUE,
+               sep="," 
+               )
+#glimpse(train_data)
+
+train_tibble <- as_tibble(train_data)
+#train_tibble
+```
+
+
+#__Exercise 2__
+#Normally at this point you would spend a few days on EDA, but for this homework we will get right to fitting some linear regression models. Our first step is to randomly split the data into train and test datasets. We will use a 70/30 split. There is a R package that will do the split for you, but let’s get some more practice with R and do it ourselves by filling in the blanks in the code below.
+
+```{r}
+# When taking a random sample, it is often useful to set a seed so that
+# your work is reproducible. Setting a seed will guarantee that the same
+# random sample will be generated every time, so long as you always set the
+# same seed beforehand
+set.seed(29283)
+
+# This data already has an Id column which we can make use of.
+# Let's create our training set using sample_frac. Fill in the blank.
+train_set <- train_data %>% sample_frac(0.7)
+#train_set
+
+# let's create our testing set using the Id column. Fill in the blanks.
+#test_set <- train_data %>% filter(!(train_set %in% train_data$Id))
+test_set <- train_data %>% filter(!(train_data$Id %in% train_set$Id))
+#test_set
+```
+
+
+#__Exercise 3__
+#Our target is called SalePrice. First, we can fit a simple regression model consisting of only the intercept (the average of SalePrice). Fit the model and then use the broom package to
+#take a look at the coefficient,
+#compare the coefficient to the average value of SalePrice, and
+#take a look at the R-squared.
+#Use the code below and fill in the blanks.
+```{r}
+# Fit a model with intercept only
+mod_0 <- lm(train_set$SalePrice ~ 1, data = train_set)
+mod_0
+
+#Double-check that the average SalePrice is equal to our model's coefficient
+#Average SalePrice and model's coefficient are both 182176. 
+mean(train_set$SalePrice)
+tidy(mod_0)
+
+# Check the R-squared
+#R squared is 0 in this case
+glance(mod_0)
+```
+
+#__Exercise 4__
+##Now fit a linear regression model using GrLivArea, OverallQual, and Neighborhood as the features. Don’t forget to look at data_description.txt to understand what these variables mean. Ask yourself these questions before fitting the model:
+
+##What kind of relationship will these features have with our target?
+##Can the relationship be estimated linearly?
+##Are these good features, given the problem we are trying to solve?
+##After fitting the model, output the coefficients and the R-squared using the broom package.
+
+```{r}
+
+#Converting Neighborhood categorical variable to a factor
+train_set_1  <- train_set %>% mutate(neigh_fct = factor(Neighborhood, ordered = FALSE))
+#train_set_1
+
+#First lets see if SalePrice(the target) is linearly dependent on GrLivArea, OverallQual and Neighborhood.
+
+#ggplot(data = train_set_1, mapping = aes(x = train_set_1$GrLivArea, y = train_set_1$SalePrice)) +
+#  geom_point() +
+#  geom_smooth()
+
+#ggplot(data = train_set_1, mapping = aes(x = train_set_1$OverallQual, y = train_set_1$SalePrice)) +
+#  geom_point() +
+#  geom_smooth()
+
+ggplot(data = train_set_1, mapping = aes(x = train_set_1$neigh_fct, y = train_set_1$SalePrice)) +
+  geom_point() +
+ geom_smooth() +
+  coord_flip()
+
+
+#Fitting the linear regression model on train_set_1, output the coefficients and the R-squared using the broom package.
+mod_0 <- lm(SalePrice ~ GrLivArea + OverallQual + neigh_fct, data = train_set_1)
+
+tidy(mod_0)
+
+glance(mod_0)
+
+#How would you interpret the coefficients on GrLivArea and OverallQual?
+#Coefficient on GrLivArea 62.77735 and Coefficient on OverallQual 21692.23178. This can be interpreted as : For every unit increase in GrLivArea the SalePrice would increase by 62.77735$, For every unit increase in OverallQual the SalePrice would increase by 21692.23178$, OverallQual has a greater positive effect on SalePrice.
+
+#How would you interpret the coefficient on NeighborhoodBrkSide?
+#Coefficient on NeighborhoodBrkSide -14064.37052. This can be interpreted as : For every unit increase in NeighborhoodBrkSide the SalePrice would decrease by 14064.37052$. So NeighborhoodBrkSide has a negative effect on SalePrice. 
+
+#Are the features significant?
+#Yes the features are significant, as can be seen from the ggplot graphs above. They have a profound influence on SalePrice , mostly linear. 
+
+#Are the features practically significant?
+#Yes, the features are practically significant because when buying a home, a homebuyer does pay attention to these features.
+#Most Homebuyers want houses with greater Living Area, pay attention to the overall quality of the house and tend to flock towards homes in better neighborhoods. So all these features contribute to greater price for the house. 
+
+#Is the model a good fit (to the training set)?
+#Yes. For the training set train_set_1, R squared is 0.8099927 (close to 1) and p value is 0 which suggests a good fit.
+
+```
+
+#__Exercise 5__
+##Evaluate the model on test_set using the root mean squared error (RMSE). Use the predict function to get the model predictions for the testing set. Recall that RMSE is the square root of the mean of the squared errors:
+```{r}
+test_set_1  <- test_set %>% mutate(neigh_fct = factor(Neighborhood, ordered = FALSE))
+#test_set_1
+
+distPred <- predict(mod_0, test_set_1)
+tidy(distPred)
+
+#summary is a generic function used to produce result summaries of the results of various model fitting functions. The function invokes particular methods which depend on the class of the first argument.
+summary(distPred)
+
+actuals_preds <- data.frame(cbind(actuals=test_set_1$SalePrice, predicteds=distPred))  # make actuals_predicteds dataframe.
+actuals_preds
+
+#Root mean square error is $41,915.27
+#rmse <- sqrt(mean((___ - ___)^2))
+#rmulas, you can find the RMSE by:
+#Squaring the residuals.
+#Finding the average of the residuals.
+#Taking the square root of the result.
+rmse_sqrt <- sqrt(mean((test_set$SalePrice - actuals_preds$predicteds)^2))
+rmse_sqrt
+
+
+```
+
+
+
+
+#__Exercise 7__
+##One downside of the linear model is that it is sensitive to unusual values because the distance incorporates a squared term. Fit a linear model to the simulated data below, and visualise the results. Rerun a few times to generate different simulated datasets. What do you notice about the model?
+```{r}
+#The rt() function in the below code generates random deviates. After running the code a few times, I see that rt() is creating unusual/extreme values of y for same value of x.  When the linear model is fit to the simulated data, the results are varying widely. I observe that for simulated data with not so extreme y values, the linear regression line fits nicely, in this case the data points are closely dispered around the line of fit and the p value is close to 0 and R square is high(close to 1).
+#For simulated data with extreme/unusual y values, the linear regression line doesnt fit nicely with all the data points and  there are outliers in the data points, this impacts the slope and the intercept and the p value rises and R square is low, suggesting a not so good fit with the linear regression model.
+
+#In the below instance of simulated data, there are unusual y values. The p-value for the Intercept is 1.676802e-04. The p-value for x is 2.821387e-06. The p value for the model is 2.821387e-06. The R squared is 0.5491078.  
+sim1a <- tibble(
+  x = rep(1:10, each = 3),
+  y = x * 1.5 + 6 + rt(length(x), df = 2)
+)
+sim1a
+
+ggplot(data = sim1a, mapping = aes(x = x, y = y)) +
+  geom_point() +
+  geom_smooth()
+
+mod_sim1a <- lm(y ~ x, data = sim1a)
+
+tidy(mod_sim1a)
+glance(mod_sim1a)
+
+```
+
