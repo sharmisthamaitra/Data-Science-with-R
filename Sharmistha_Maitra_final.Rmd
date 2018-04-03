@@ -1,0 +1,241 @@
+---
+title: "COMPSCIX 415.2 Homework 9/Final"
+author: "Sharmistha Maitra"
+date: "4/1/2018"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r load_packages, warning=FALSE, message=FALSE}
+library(ISLR)
+library(tidyverse)
+library(broom)
+library(rpart)
+library(partykit)
+library(ROCR)
+library(modelr)
+library(randomForest)
+```
+
+#__Bootstrapping (10 points)__
+##1.Follow these steps:
+##Load the train.csv dataset into R.
+##Convert all character columns into unordered factors.
+##Convert the Survived column into an unordered factor because it is loaded as an integer by default.
+##Take a glimpse of your data to confirm that all of the columns were converted correctly.
+##We will use this same dataset for this entire assignment.
+
+
+```{r}
+Train_file_path <- "/Users/sharmisthamaitra/compscix-415-2-assignments/Train.csv"
+Train_data <- read.table(Train_file_path, 
+              header = TRUE,
+               sep="," 
+               )
+head(Train_data)
+
+Train_data_1 <- Train_data %>% mutate(Survived = as.factor(Survived)) %>% mutate(Sex = as.factor(Sex)) %>% mutate(Name = as.factor(Name)) %>% mutate(Ticket = as.factor(Ticket)) %>% mutate(Cabin = as.factor(Cabin)) %>% mutate(Embarked = as.factor(Embarked)) 
+
+head(Train_data_1)
+```
+
+
+##2.Use the code below to take 100 bootstrap samples of your data. Confirm that the result is a tibble with a list column of resample objects - each resample object is a bootstrap sample of the titanic dataset.
+```{r}
+titanic_boot <- bootstrap(data = Train_data_1, n = 100)
+titanic_boot
+```
+
+##3.Confirm that some of your bootstrap samples are in fact bootstrap samples (meaning they should have some rows that are repeated). You can use the n_distinct() function from dplyr to see that your samples have different numbers of unique rows. Use the code below to help you extract some of the resample objects from the strap column (which is an R list), convert them to tibbles, and then count distinct rows. Use the code below, no changes necessary.
+## since the strap column of titanic_boot is a list, we can extract the resampled data using the double brackets [[]],
+## and just pick out a few of them to compare the number of distinct rows
+```{r}
+as.tibble(titanic_boot$strap[[1]]) %>% n_distinct()
+as.tibble(titanic_boot$strap[[2]]) %>% n_distinct()
+as.tibble(titanic_boot$strap[[3]]) %>% n_distinct()
+
+```
+
+##4.Now, let’s demonstrate the Central Limit Theorem using the Age column. We’ll iterate through all 100 bootstrap samples, take the mean of Age, and collect the results.
+##We will define our own function to pull out the mean of Age from each bootstrap sample and create our own for loop to iterate through.Use the code below and fill in the blanks.
+```{r}
+age_mean <- function(titanic_bootstrap) {
+  data <- as.tibble(titanic_bootstrap) # convert input data set to a tibble
+  mean_age <- mean(data$Age, na.rm = TRUE) # take the mean of Age, remove NAs
+  return(mean_age) # return the mean value of Age from data
+}
+
+
+# loop through the 100 bootstrap samples and use the age_mean()
+# function
+all_means <- rep(NA, 100)
+
+# start the loop
+for(i in 1:100) {
+  all_means[i] <- age_mean(titanic_boot$strap[[i]])
+}
+
+# take a look at some of the means you calculated from your samples
+head(all_means)
+
+# convert to a tibble so we can use if for plotting
+all_means <- tibble(all_means = all_means)
+head(all_means)
+```
+
+##5.Plot a histogram of all_means.
+```{r}
+ggplot(data = all_means, mapping = aes(x = all_means, binwidth = 1)) +
+  geom_histogram() +
+  labs(x = 'Age means', y = 'Counts') +
+  theme_bw()
+```
+
+##6.Find the standard error of the sample mean of Age using your boostrap sample means. Compare the empirical standard error to the theoretical standard error.
+
+##Recall that the theoretical standard error is given by: SE=σ/√n, where σ is the standard deviation of Age and n
+##is the size of our sample.
+```{r}
+#Standard error of sample mean of Age using bootstrap is 0.5693739.
+#Theoretical standard error is calculated as 0.486656. 
+#The standard error of sample means is slightly more than theoretical standard error, this makes sense because the sample means have been created using 100 bootstrap samples.  
+all_means_SE <- all_means %>% summarize(se_age_mean = sd(all_means))
+all_means_SE
+
+Theoretical_all_means_SE <- sd((Train_data_1$Age), na.rm = TRUE)/count(Train_data_1)^0.5
+Theoretical_all_means_SE
+```
+
+#__Random forest (10 points)__
+#On the last homework, we fit a decision tree to the Titanic data set to predict the probability of survival given the features. This week we’ll use the random forest and compare our results to the decision tree.
+##1.Randomly split your data into training and testing using the code below so that we all have the same sets.
+```{r}
+set.seed(987)
+
+model_data <- resample_partition(Train_data_1, c(test = 0.3, train = 0.7))
+
+train_set <- as.tibble(model_data$test)
+head(train_set)
+
+test_set <- as.tibble(model_data$train)
+head(test_set)
+```
+
+##2.Fit a decision tree to train_set using the rpart package, and using Pclass, Sex, Age, SibSp, Parch, Fare, Embarked as the features. Plot the tree using the partykit package. What do you notice about this tree compared to the one from last week which only contained three features?
+```{r}
+#Adding more features to decision tree has caused the tree to generate more decision branches . However it seems that the most important features are still Sex, Pclass, Fare and Age.
+tree_mod <- rpart(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked, data = Train_data_1)
+
+plot(as.party(tree_mod))
+
+```
+
+
+##3.Fit a random forest to train_set using the randomForest package, and using Pclass, Sex, Age, SibSp, Parch, Fare, Embarked as the features. We’ll use 500 trees and sample four features at each split. Use the code below and fill in the blanks.
+```{r}
+rf_mod <- randomForest(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked, 
+                         data = train_set, 
+                         ntrees = 500, 
+                         mtry = 4, 
+                         na.action = na.roughfix,
+                        importance = TRUE)
+
+varImpPlot(rf_mod, type = 2)
+
+```
+
+##4. Compare the performance of the decision tree with the random forest using the ROCR package and the AUC. Which model performs the best? Here’s some code to get you started.
+
+```{r}
+rf_preds <- predict(rf_mod, newdata = test_set, type = 'prob')[,2]
+tree_preds <- predict(tree_mod, newdata = test_set)[,2]
+
+pred_rf <- prediction(predictions = rf_preds, labels = test_set$Survived)
+pred_tree <- prediction(predictions = tree_preds, labels = test_set$Survived)
+```
+
+
+##5. Plot the ROC curves for the decision tree and the random forest above, on the same plot with a legend that differentiates and specifies which curve belongs to which model. Use the code below to get you started. Hints:
+##You will have to modify the plot_roc() function to plot the two curves together with different colors and a legend.
+##This is easier to do if the data for plotting the two curves are in one tibble. You can combine tibbles using the bind_rows() function.
+```{r}
+# get the FPR and TPR for the logistic model
+# recall that the ROC curve plots the FPR on the x-axis
+perf_rf <- performance(pred_rf, measure = 'tpr', x.measure = 'fpr')
+perf_rf_tbl <- tibble(perf_rf@x.values[[1]], perf_rf@y.values[[1]])
+
+# Change the names of the columns of the tibble
+names(perf_rf_tbl) <- c('fpr', 'tpr')
+
+#Add a column for model name
+perf_rf_tbl_1 <- perf_rf_tbl %>% mutate(model = c('Random Forest'))
+head(perf_rf_tbl_1)
+
+
+
+# get the FPR and TPR for the tree model
+# recall that the ROC curve plots the FPR on the x-axis
+perf_tree <- performance(pred_tree, measure = 'tpr', x.measure = 'fpr')
+perf_tree_tbl <- tibble(perf_tree@x.values[[1]], perf_tree@y.values[[1]])
+
+# Change the names of the columns of the tibble
+names(perf_tree_tbl) <- c('fpr', 'tpr')
+
+#Add a column for model name
+perf_tree_tbl_1 <- perf_tree_tbl %>% mutate(model = c('Decision Tree'))
+head(perf_tree_tbl_1)
+
+
+
+#Now combine the rf and tree tibble using bind_rows()
+perf_tbl_bind <- bind_rows(perf_rf_tbl_1, perf_tree_tbl_1)
+dim(perf_tbl_bind)
+
+# Plotting function for plotting a nice ROC curve using ggplot, modify function to accomodate for rf and tree in same plot. 
+plot_roc <- function(perf_tbl) {
+  p <- ggplot(data = perf_tbl, aes(x = fpr, y = tpr, color = model)) +
+  geom_line() +
+  geom_abline(intercept = 0, slope = 1, lty = 3) +
+  labs(x = 'False positive rate', y = 'True positive rate', title = 'ROC plots Random Forest vs Decision Tree') +
+  theme_bw()
+  return(p)
+}
+
+plot_roc(perf_tbl_bind)
+```
+
+
+
+##6.Answer these questions about the ROC curves:
+##which model performs better: decision tree or random forest? what is the approximate false positive rate, for both the decision tree and the random forest, if we attain a true positive rate of approximately 0.75? Answers do not need to be exact - just ballpark it by looking at the plots.
+```{r}
+#To evaluate which model performs beter , I have used performance() function to calculate the area under the curve (AUC) for both models. 
+
+# calculate the AUC for rf
+auc_rf <- performance(pred_rf, measure = "auc")
+
+# calculate the AUC for tree
+auc_tree <- performance(pred_tree, measure = "auc")
+
+
+# extract the AUC value. AUC for rf is 0.8464284 . #As a rule of thumb, a model with good predictive ability should have an AUC closer to 1 (1 is ideal) than to 0.5.
+auc_rf@y.values[[1]]
+
+# extract the AUC value. AUC for tree is 0.8420883. #As a rule of thumb, a model with good predictive ability should have an AUC closer to 1 (1 is ideal) than to 0.5.
+auc_tree@y.values[[1]]
+
+#Here we see Random Forest with AUC = 0.8464284 performs slightly better than Decision Tree with AUC = 0.8420883
+#The approximate false positive rate is approximately 0.18-0.20(by looking at the plots) for both decision tree and the random forest, if we want to attain a true positive rate of 0.75
+```
