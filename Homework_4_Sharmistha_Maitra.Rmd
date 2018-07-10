@@ -2,7 +2,10 @@
 title: "COMPSCIX 415.2 Homework 4"
 author: "Sharmistha Maitra"
 date: "2/20/2018"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
 ---
 
 ```{r setup, include=FALSE}
@@ -15,10 +18,7 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-#Section 5.6.7: #2, #4, #5 and #6 only
-#Section 10.5: #1, #2, #3 and #6 only
-#Section 12.3.3: #2, #3 and #4 only
-#Section 12.4.3: #1 and #2 only
+
 
 
 ```{r load_packages, warning=FALSE, message=FALSE}
@@ -26,8 +26,8 @@ library(nycflights13)
 library(tidyverse)
 ```
 
-#Section 5.6.7: #2
-#Come up with another approach that will give you the same output as not_cancelled %>% count(dest) and not_cancelled %>% count(tailnum, wt = distance) (without using count()).
+
+#Section 5.6.7: 2) Come up with another approach that will give you the same output as not_cancelled %>% count(dest) and not_cancelled %>% count(tailnum, wt = distance) (without using count()).
 
 ```{r}
 not_cancelled <- flights %>%
@@ -56,47 +56,159 @@ flight_by_tailnum_dist
 ```
 
 
-#4.Look at the number of cancelled flights per day. Is there a pattern? Is the proportion of cancelled flights related to the average delay?
+#Section 5.6.7: 4).Look at the number of cancelled flights per day. Is there a pattern? Is the proportion of cancelled flights related to the average delay?
 
 ```{r}
 cancelled_flights_per_day <- flights %>%
                             group_by(year, month, day) %>%
                             summarize(
                             count_flights = n(), 
-                            count_cancelled_flights = sum(is.na(dep_delay)),
+                            count_canc_flights = sum(is.na(dep_delay) | is.na(arr_delay)),
                             average_delay = mean(dep_delay,na.rm = TRUE),
-                            prop_cancelled_flights = count_cancelled_flights/count_flights 
+                            prop_canc_flights = count_canc_flights/count_flights 
+                            #proportion could also be calculated with mean
                    )
 cancelled_flights_per_day
 
-ggplot(data = cancelled_flights_per_day, mapping = aes(x = average_delay, y = prop_cancelled_flights)) +
+ggplot(data = cancelled_flights_per_day, mapping = aes(x = average_delay, y = prop_canc_flights)) +
   geom_point() +
   geom_smooth()
 ```
 
-
-#5.Which carrier has the worst delays? Challenge: can you disentangle the effects of bad airports vs. bad carriers? Why/why not? (Hint: think about flights %>% group_by(carrier, dest) %>% summarise(n()))
-
-
-#carriers with worst delays
 ```{r}
+#Homework Solution
+#its better to filter out the required records and add column with a flag, like here TRUE for cancelled flights, FALSE for not cancelled flights 
+flights <- flights %>% 
+  mutate(cancelled = is.na(dep_delay) | is.na(arr_delay))
+
+flights
+
+
+# summarize flights, grouped by day of the year, to get number of cancelled flights, proportion of cancelled flights and average departure delay
+summ_flts <- flights %>% 
+              group_by(year, month, day) %>% 
+              
+              summarize(
+                #using count_flights and count_canc_flights to calculate proportion.could                    also use the mean function.
+                count_flights = n(),
+                count_canc_flights = sum(is.na(dep_delay) | is.na(arr_delay)),
+                prop_canc_flights = count_canc_flights/count_flights, 
+                sum_canc = sum(cancelled, na.rm = TRUE), 
+                prop_canc = mean(cancelled, na.rm = TRUE), 
+              
+                avg_delay = mean(dep_delay, na.rm = TRUE)
+              )
+summ_flts
+```
+
+# we can choose to plot the number of cancelled flights over time to look for a pattern since
+# it is difficult to see a pattern in the raw numbers
+# a smooth line will look best, but first we need to create a new time column. I'm 
+# keeping it simple here and just creating a new column from 1 through number of days. This 
+# obviously won't work if we don't have consecutive days, but it works fine for our purposes.
+```{r}
+summ_flts <- summ_flts %>% 
+            #ungroup() %>% 
+            mutate(time = 1:n())
+summ_flts
+summ_flts %>% ggplot() + geom_smooth(aes(x = time, y = sum_canc))
+
+# first plot isn't helpful, so let's play with the span argument
+#span	Controls the amount of smoothing for the default loess smoother. Smaller numbers produce wigglier lines, larger numbers produce smoother lines.
+summ_flts %>% ggplot() + geom_smooth(aes(x = time, y = sum_canc), span = .1) +
+  xlab('Number of days into the year') +
+  ylab('Sum of cancelled flights') +
+  theme_bw()
+```
+
+
+#Section 5.6.7: 5).Which carrier has the worst delays? Challenge: can you disentangle the effects of bad airports vs. bad carriers? Why/why not? (Hint: think about flights %>% group_by(carrier, dest) %>% summarise(n()))
+
+
+
+```{r}
+#carriers with worst delays
 carriers_worst_delay_carrier <- flights %>%
                               group_by(carrier) %>%
                               summarize(count = n(), 
-                                  delay = mean(arr_delay, na.rm = TRUE),
-                                  proportion_delay = delay/count
+                                    average_delay = mean(dep_delay, na.rm = TRUE)
+                                 # delay = mean(arr_delay, na.rm = TRUE),
+                                #  proportion_delay = delay/count
                                   ) %>%
-                              arrange(desc(proportion_delay))
-                                 
-                        
+                              arrange(desc(average_delay))
 carriers_worst_delay_carrier
 
- ggplot(data = carriers_worst_delay_carrier, mapping = aes(x = carrier, y = proportion_delay)) +
+ ggplot(data = carriers_worst_delay_carrier, mapping = aes(x = carrier, y = average_delay)) +
   geom_col() 
+ 
+#average delay time isn’t helpful, and the average delay time reveals F9 to be the worst, but I’m suspicious of outliers.Let’s look at the number of delayed (arrivals OR departure) flights that were delayed for more than 10 minutes. We see below that ExpressJet Airlines has the most delays by pure volume. We could also look at proportions, but you get the idea.
+
+flights %>% filter(dep_delay > 10 | arr_delay > 10) %>%
+  count(carrier, sort = TRUE) %>%
+  head(10)
+
+#just considering flights with departure delay > 10 mins
+flights %>% filter(dep_delay > 10 | arr_delay > 10) %>%
+            group_by(carrier) %>%
+            arrange(carrier) %>%
+            # count()
+           # count(carrier, sort = TRUE)
+            #remember that sum works on numeric columns only, it adds up the values in that column. if you want to know the count of, for example here, the total count of each type of carriers , use count_carrer = n() function.
+  #Also remember that arrange() can be applied after group_by, also can be applid after summarizing values in a group , like below. Arrange() needs to be preceeeded by %>%
+            summarise(
+              count_carrier = n()
+              ) %>%
+            arrange(desc(count_carrier))
+
+  
 ```
 
-#destinations with worst delay
+
 ```{r}
+
+#There may also be airports that are generally “bad” airports to fly into, which will cause both arrival and departure delays to and from that airport. Again, let’s simply look at volume of delays (we’ll just look at arrival delays and destination airports) where the delay was more than 10 minutes.
+
+#Let’s focus on our worst carriers: EV; UA; and B6. Here, we take our three worst carriers in terms of volume of delayed flights, and then plot the proportion of delayed flights for each destination. If the delays are concentrated at a few airports, this may say something more about the airport than the carrier.
+
+flights_EVUAB6_delayedgt10 <- flights %>% 
+                              filter(carrier %in% c('EV', 'UA', 'B6')) %>%
+                              mutate(delayed = arr_delay > 10) %>% 
+                              group_by(dest, carrier) %>%
+                              arrange(dest, carrier)
+flights_EVUAB6_delayedgt10
+
+```
+```{r}
+#Very important revelation. Sum() under Summarise() works on columns with boolean values (true or false), like below example, it works on delayed column. But sum() doesnt work on columns with charater values, for example it cannot find the count of grouped carrier, summarise (sum(carrier)), summarise(sum(dest)) does not work. we have to use summarise(n()) function for that. Mean() also works on boolean and numeric columns, thus prop_delay = mean(delayed, na.rm = TRUE) works in below example 
+
+  flights_delay_analysis <- flights_EVUAB6_delayedgt10 %>%
+                                summarise(
+                                prop_delay = mean(delayed, na.rm = TRUE)
+                                )
+                                #sum_delay = sum(delayed, na.rm = TRUE),
+                                #sum_cancelled = sum(cancelled, na.rm = TRUE),
+                                #sum(air_time, na.rm = TRUE)
+  flights_delay_analysis                              
+
+ 
+  ggplot(data = flights_delay_analysis, mapping = aes(x = dest, y = prop_delay)) +
+  geom_bar(stat = 'identity') +
+  coord_flip() +
+  facet_wrap(~carrier)
+```
+```{r}
+flights %>% filter(carrier %in% c('EV', 'UA', 'B6')) %>%
+  mutate(delayed = arr_delay > 10) %>% 
+  group_by(dest, carrier) %>%
+  summarise(prop_delay = mean(delayed, na.rm = TRUE)) %>%
+  ggplot(aes(x = dest, y = prop_delay)) +
+  geom_bar(stat = 'identity') +
+  coord_flip() +
+  facet_wrap(~carrier)
+```
+
+
+#destinations with worst delay
 carriers_worst_delay_dest <- flights %>%
                               group_by(dest) %>%
                               summarize(count = n(), 
@@ -112,8 +224,9 @@ carriers_worst_delay_dest
   geom_col() 
 ```
 
-#delays arranged by carrier and destination
+
 ```{r}
+#delays arranged by carrier and destination
 carriers_worst_delay_carrierdest <- flights %>%
                           
                         group_by(carrier,dest) %>%
@@ -132,6 +245,10 @@ carriers_worst_delay_carrierdest <- flights %>%
  
  
 ```
+
+
+
+
 
 #6.What does the sort argument to count() do. When might you use it?
 #sort argument on count() sorts the results of the count() in descending order.  
