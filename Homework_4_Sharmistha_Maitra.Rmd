@@ -24,6 +24,8 @@ When you click the **Knit** button a document will be generated that includes bo
 ```{r load_packages, warning=FALSE, message=FALSE}
 library(nycflights13)
 library(tidyverse)
+
+#Homework 4
 ```
 
 
@@ -73,6 +75,8 @@ cancelled_flights_per_day
 ggplot(data = cancelled_flights_per_day, mapping = aes(x = average_delay, y = prop_canc_flights)) +
   geom_point() +
   geom_smooth()
+
+#mean(flights$dep_delay)
 ```
 
 ```{r}
