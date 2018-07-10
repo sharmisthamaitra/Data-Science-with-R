@@ -1,0 +1,314 @@
+---
+title: "Titanic Survival with Logistic Regression and Decision Tree"
+author: "Sharmistha Maitra"
+date: "July 10, 2018"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r load_packages, warning=FALSE, message=FALSE}
+library(ISLR)
+library(tidyverse)
+library(broom)
+library(rpart)
+library(partykit)
+library(ROCR)
+```
+
+
+#__THE PROJECT DESCRIPTION:Compare the performance of prediction models Logistic regression vs Decision Tree for survival of titanic pasengers__
+
+
+#__LOADING TITANIC DATA__
+##Load the train.csv dataset into R. Convert the target variable to a factor because it will be loaded into R as an integer by default.
+```{r}
+#1460 observations and 81 columns.
+Train_file_path <- "/Users/sharmisthamaitra/compscix-415-2-assignments/Train.csv"
+Train_data <- read.table(Train_file_path, 
+              header = TRUE,
+               sep="," 
+               )
+head(Train_data)
+
+#Train_data_1 <- Train_data %>% mutate(Survived_fctr = case_when(
+#  Survived == 1 ~ 'Yes',
+#  Survived == 0 ~ 'No'
+#))
+
+dim(Train_data)
+
+Train_data_1 <- Train_data %>% mutate(Survived = as.factor(Survived))
+head(Train_data_1)
+```
+
+#__SPLITTING DATA INTO TRAINNG AND TEST DATASETS__
+##Randomly split the data into training and test datasets. Using a 70/30 split and random seed of 29283 so that
+## same training and test set is generated in each run.
+```{r}
+#FIRST METHOD - Creating training and test set using sample_frac(). 
+#Check results => training set should have 624 records, test set should have 267 records
+set.seed(29283)
+
+train_set <- Train_data_1 %>% sample_frac(0.7)
+head(train_set)
+
+test_set <- Train_data_1 %>% sample_frac(0.3)
+head(test_set)
+```
+
+
+```{r}
+#SECOND METHOD - Using PassengerID column and sample_frac() to filter out records for training and test set. 
+#Check results => training set should have 624 records, test set should have 267 records
+
+set.seed(29283)
+
+train_set <- Train_data_1 %>% sample_frac(.7)
+head(train_set)
+
+test_set <- Train_data_1 %>% filter(!(PassengerId %in% train_set$PassengerId))
+head(test_set)
+```
+
+#__FITTING LOGISTIC REGRESSION MODEL to predict survival__
+##Fit the model using the glm() function. The target for model is 'Survived'. Features used - Pclass, Sex, Fare. 
+
+##What kind of relationship will these features have with the probability of survival?
+##Are these good features, given the problem we are trying to solve?
+##After fitting the model, output the coefficients using the broom package and answer these questions:
+
+##How would you interpret the coefficients?
+##Are the features significant?
+##Use the code below and fill in the blanks.
+```{r}
+# Fit a model with Pclass + Sex + Fare
+
+#SOME INSIGHTS
+#By intuition, it seems that Pclass , Sex and Fare will have an impact on the probability of survival. 
+#For example there are more chances of better survival for people travelling in higher class AND those who paid higher fare. 
+
+#Interpreting coefficients after fitting the model
+#SEX - This has the lowest p-value(1.490440e-35) suggesting that sex of the passenger has a huge impact on the probability of his/her survival. 
+#FARE - An increase in Fare is associated with an increased probability of survival. A one dollar increase in the Fare increases the log-odds of survival by ~ .002.
+mod_1 <- glm(Survived ~ Pclass + Sex + Fare, data = train_set, family = 'binomial')
+tidy(mod_1)
+
+
+```
+
+#__FITTING DECISION TREE MODEL to predict survival___
+##Now, let’s fit the classification tree model, using the same features(Pclass, Sex, Fare) and target(Survived). 
+##Plot outcome of the decision tree.Fit the model using the rpart() function. 
+```{r}
+#INSIGHT: A Female passenger had better chance of survival. Following the path in the tree, we have this case a female #passenger who was travelling in higher Pclass (>= 2.5) and paid fare between 15$ and 23.7$ has a high probability of survival. 
+tree_mod <- rpart(Survived ~ Pclass + Sex + Fare, data = train_set)
+
+plot(as.party(tree_mod))
+```
+
+#__NOW TRAINING IS COMPLETE FOR BOTH MODELS(logistic regression and classification tree); LETS EVALUATE MODELS ON TEST DATASET__
+##Evaluate both models on the test_set. 
+##Use predict() function to get the model predictions for the testing set. PRINT FIRST 5 VALUES OF 'SURVIVED' (a number
+##between 0 and 1 indicating probability of survival, close to 1 means survived) for both models to check the predictions.
+
+```{r}
+
+test_logit <- predict(mod_1, newdata = test_set, type = 'response')
+head(test_logit)
+
+test_tree <- predict(tree_mod, newdata = test_set)[,2]
+head(test_tree)
+```
+
+
+#__GET fpr AND tpr FOR BOTH MODELS (logistic regression and classification tree). PLOT ROC CURVES FOR BOTH MODELS TO COMPARE PERFORMANCE
+
+```{r}
+# create the prediction objects for both models
+pred_logit <- prediction(predictions = test_logit, labels = test_set$Survived)
+
+pred_tree <- prediction(predictions = test_tree, labels = test_set$Survived)
+
+
+
+# get the FPR and TPR for the logistic model
+# recall that the ROC curve plots the FPR on the x-axis
+perf_logit <- performance(pred_logit, measure = 'tpr', x.measure = 'fpr')
+perf_logit_tbl <- tibble(perf_logit@x.values[[1]], perf_logit@y.values[[1]])
+
+# Change the names of the columns of the tibble
+names(perf_logit_tbl) <- c('fpr', 'tpr')
+head(perf_logit_tbl)
+
+
+
+# get the FPR and TPR for the tree model
+perf_tree <- performance(pred_tree, measure = 'tpr', x.measure = 'fpr')
+perf_tree_tbl <- tibble(perf_tree@x.values[[1]], perf_tree@y.values[[1]])
+
+# Change the names of the columns of the tibble
+names(perf_tree_tbl) <- c('fpr', 'tpr')
+head(perf_tree_tbl)
+
+
+
+# Plotting function for plotting a nice ROC curve using ggplot
+plot_roc <- function(perf_tbl) {
+  p <- ggplot(data = perf_tbl, aes(x = fpr, y = tpr)) +
+  geom_line(color = 'blue') +
+  geom_abline(intercept = 0, slope = 1, lty = 3) +
+  labs(x = 'False positive rate', y = 'True positive rate') +
+  theme_bw()
+  return(p)
+}
+
+# Create the ROC curves FOR LOGISTIC REGRESSION model and DECISION TREE
+plot_roc(perf_logit_tbl)
+plot_roc(perf_tree_tbl)
+```
+
+
+#__USE performance() function TO CALCULATE AREA UNDER THE CURVE (AUC) FOR BOTH ROC CURVES.
+##AUC for LOGISTIC REGRESSION is 0.8147854 AUC for DECISION TREE is 0.776602. As a rule of thumb, a model with good predictive ability should have an AUC closer to 1 (1 is ideal) than to 0.5.
+```{r}
+
+# calculate the AUC FOR BOTH MODELS
+
+auc_logit <- performance(pred_logit, measure = "auc")
+
+
+auc_tree <- performance(pred_tree, measure = "auc")
+
+
+# extract the AUC value. AUC for pred_logit is 0.860872. #As a rule of thumb, a model with good predictive ability should have an AUC closer to 1 (1 is ideal) than to 0.5.
+auc_logit@y.values[[1]]
+
+# extract the AUC value. AUC for pred_tree is 0.8256979 . #As a rule of thumb, a model with good predictive ability should have an AUC closer to 1 (1 is ideal) than to 0.5.
+auc_tree@y.values[[1]]
+```
+
+
+#__PERFORMANCE EVALUATION FOR BOTH MODELS depending on ROC curves and AUC values. Is the logistic regression model doing better, worse, or about the same as the classification tree?__
+
+##Pick a probability cutoff by looking at the ROC curves. 
+##1)Create 4 new columns for the dataset(2 columns for each model predicting probability of survival for each passenger) as decribed below
+
+
+```{r}
+#Create 2 new columns to hold prediction values(number between 0 and 1) for 'Survived' for Logistic Regression and Decision Tree model   
+test_set_1 <- test_set %>% mutate(pred_logit_prob = test_logit) %>% mutate(pred_tree_prob = test_tree)
+
+
+#Create 2 news columns to hold prediction values (Yes or No, depending on chosen cutoff) for 'Survived' for Logistic Regression and Decision Tree model
+test_set_2 <- test_set_1 %>% mutate(pred_logit_cat = case_when(pred_logit_prob < .25 ~ 'No',
+                                              pred_logit_prob >= .25 ~ 'Yes'))
+
+
+test_set_3 <- test_set_2  %>% mutate(pred_tree_cat = case_when(pred_tree_prob < .25 ~ 'No',
+                                              pred_tree_prob >= .25 ~ 'Yes'))
+head(test_set_3)
+```
+
+
+##2)Using the probability cutoff, create the confusion matrix for both model.
+
+```{r}
+#
+#-------RESULTS OF CONFUSION MATRIX for both models -------------
+#Logistic regression CORRECTLY PREDICTED 84 SURVIVALS.
+#Decision tree CORRECTLY PREDICTED 68 SURVIVALS.
+#Logistic did a better job in reducing the amount of False Negatives. Decision tree did a better job is reducing the amount of false positives. 
+#AUC for LOGISTIC is 0.8147854 and AUC for TREE is 0.776602 which suggests that Logistic regression is performing slightly better. 
+
+#Logistic regression
+#————------------------------
+#Predicted No, Actual No - 112 (true negatives)
+#Predicted No, Actual Yes - 21( false negatives)
+
+#Predicted Yes, Actual Yes - 84 (true positives)
+#Predicted Yes, Actual No - 50 ( false positives)
+
+#Classification tree
+#————----------------
+#Predicted No, Actual No - 138 (true negatives)
+#Predicted No, Actual Yes - 37 ( false negatives)  
+
+#Predicted Yes, Actual Yes - 68 (true positives)
+#Predicted Yes, Actual No - 24 (false positives)
+
+test_set_3 %>% count(pred_logit_cat, Survived) %>% spread(Survived, n)
+test_set_3 %>% count(pred_tree_cat, Survived) %>% spread(Survived, n)
+```
+
+#__INCREASE PERFORMANCE OF MODELS by choosing a more meaningful cutoff by looking at the ROC curves__
+##Cutoff for logistic => 63.3%
+##Cutoff for Tree => 37.0%
+#Now Decision Tree giving more accurate prediction, tree correctly predicted 68 survivals compared to logistic which
+#predicted 61 survivals. 
+```{r}
+
+#Logistic regression
+#————------------------------
+#Predicted No, Actual No - 134 (true negatives)
+#Predicted No, Actual Yes - 44( false negatives)
+
+#Predicted Yes, Actual Yes - 61 (true positives)
+#Predicted Yes, Actual No - 28 ( false positives)
+
+
+#Classification tree
+#————----------------
+#Predicted No, Actual No - 138 (true negatives)
+#Predicted No, Actual Yes - 37 ( false negatives)  
+
+#Predicted Yes, Actual Yes - 68 (true positives)
+#Predicted Yes, Actual No - 24 (false positives)
+
+
+
+# create a tibble of your fpr, tpr and cutoffs
+perf_tree_tbl_summary <- tibble(fpr = perf_tree@x.values[[1]], tpr = perf_tree@y.values[[1]], cutoffs = perf_tree@alpha.values[[1]])
+#perf_tree_tbl_summary
+
+perf_logit_tbl_summary <- tibble(fpr = perf_logit@x.values[[1]], tpr = perf_logit@y.values[[1]], cutoffs = perf_logit@alpha.values[[1]])
+#perf_logit_tbl_summary
+
+# then you can use data wrangling verbs to manipulate your tibble
+# and find the cutoff you want to use
+perf_tree_tbl_summary %>% filter(fpr < .2 & tpr > .6)
+
+perf_logit_tbl_summary %>% filter(fpr < .2 & tpr > .6)
+
+# I choose to use these cutoff values
+p_cutoff_logit <- .633
+p_cutoff_tree <- .370
+
+test_set_4 <- test_set %>% mutate(test_logit = test_logit, 
+                                test_tree = test_tree,
+                                class_logit = case_when(test_logit < p_cutoff_logit ~ 'No',
+                                                        test_logit >= p_cutoff_logit ~ 'Yes'),
+                                class_tree = case_when(test_tree < p_cutoff_tree ~ 'No',
+                                                        test_tree >= p_cutoff_tree ~ 'Yes'))
+head(test_set_4)
+
+
+test_set_4 %>% count(class_logit, Survived) %>% spread(Survived, n)
+test_set_4 %>% count(class_tree, Survived) %>% spread(Survived, n)
+
+
+```
+
+
