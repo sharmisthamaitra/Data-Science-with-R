@@ -7,13 +7,17 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
 ```
 
 My Github repository for my assignments can be found at this URL: [https://github.com/sharmisthamaitra/compscix-415-2-assignments](your URL)
 
 ```{r load_packages, warning=FALSE, message=FALSE}
+
 library(mdsr)
 library(tidyverse)
+
+#Homework 1
 ```
 
 ```{r}
