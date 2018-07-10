@@ -1,5 +1,5 @@
 ---
-title: "Titanic Survival with Logistic Regression and Decision Tree"
+title: "Titanic Survival with Logistic Regression and Decision Tree "
 author: "Sharmistha Maitra"
 date: "July 10, 2018"
 output: 
